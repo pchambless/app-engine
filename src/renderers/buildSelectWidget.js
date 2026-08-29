@@ -1,11 +1,4 @@
-function escapeHtmlAttr(value) {
-  return String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/'/g, '&#39;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
+import { escapeHtmlAttr } from './htmlUtils.js';
 
 export function buildSelectWidget(component, slotAttrs = {}) {
   const { comp_name, template_name, template_title } = component;

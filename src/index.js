@@ -5,5 +5,6 @@ export { buildCrudButtons } from './renderers/buildCrudButtons.js';
 export { buildHtmxDiv } from './renderers/buildHtmxDiv.js';
 export { buildSelectWidget } from './renderers/buildSelectWidget.js';
 export { normalizeHtml } from './renderers/normalizeHtml.js';
+export { escapeHtmlAttr } from './renderers/htmlUtils.js';
 export { wrapHtml } from './renderers/wrapHtml/index.js';
 export { callWorkflow, N8N_BASE } from './utils/n8nClient.js';

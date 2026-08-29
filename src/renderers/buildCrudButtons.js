@@ -1,3 +1,5 @@
+import { escapeHtmlAttr } from './htmlUtils.js';
+
 export function buildCrudButtons(pageInfo) {
   if (pageInfo.templateType !== 'crud') return '';
 
@@ -32,13 +34,6 @@ export function buildCrudButtons(pageInfo) {
     };
   }
 
-  const escapeAttr = (str) => String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/'/g, '&#39;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
   const buttons = [];
   if (formTemplate) {
     buttons.push('<button type="button" data-trigger="add_new" class="wf-slot-action-btn">Add New</button>');
@@ -47,5 +42,5 @@ export function buildCrudButtons(pageInfo) {
     buttons.push('<button type="button" data-trigger="delete_selected" class="wf-slot-action-btn wf-btn-danger">Delete Selected</button>');
   }
 
-  return `<div class="wf-slot-actions" data-actions='${escapeAttr(JSON.stringify(actions))}'>${buttons.join('')}</div>`;
+  return `<div class="wf-slot-actions" data-actions='${escapeHtmlAttr(JSON.stringify(actions))}'>${buttons.join('')}</div>`;
 }
