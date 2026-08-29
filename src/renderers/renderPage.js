@@ -4,6 +4,7 @@ import { normalizeHtml } from './normalizeHtml.js';
 import { resolveLayout } from './resolveLayout.js';
 import { hydrateSlots } from './hydrateSlots.js';
 import { buildCrudButtons } from './buildCrudButtons.js';
+import { ENGINE_SOURCE } from '../config.js';
 
 /**
  * @typedef {import('../config.js').AppConfig} AppConfig
@@ -19,7 +20,14 @@ import { buildCrudButtons } from './buildCrudButtons.js';
 export function createRenderPage(config) {
   const {
     schema,
-    source,
+    // Defaults to ENGINE_SOURCE ('app_engine') - see config.js. This is the
+    // literal app_engine.tf_template_router checks for to return styled-html
+    // instead of raw-json for json/static-classified templates. Every app
+    // that renders through THIS engine (as opposed to calling n8n directly,
+    // the way Appsmith does with its own dynamic {{appsmith.appName}}) needs
+    // that exact string - overriding it to a per-app name here would silently
+    // flip every such app to raw-json with no error.
+    source = ENGINE_SOURCE,
     loginPath,
     usersTable,
     publicShellTemplate,

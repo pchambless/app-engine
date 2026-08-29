@@ -1,7 +1,22 @@
 /**
+ * The literal app_engine.tf_template_router (and, historically, studio.tf_template_router
+ * with 'wf-server') checks p_source against to decide styled-html vs raw-json for
+ * json/static-classified templates. `source` is genuinely caller-identity, not engine-owned -
+ * a non-engine integration calling n8n directly (e.g. Appsmith, which sends its own dynamic
+ * {{appsmith.appName}}) is SUPPOSED to get raw-json, since it does its own rendering. But
+ * every app that renders THROUGH this JS engine wants styled-html, which means it must send
+ * this exact string - so renderPage.js defaults `source` to this constant rather than
+ * requiring every consuming app to remember and correctly type the magic value.
+ * @type {string}
+ */
+export const ENGINE_SOURCE = 'app_engine';
+
+/**
  * @typedef {Object} AppConfig
  * @property {string} schema - Postgres schema holding html_templates/css/etc for this app (e.g. "studio").
- * @property {string} source - literal passed to the hydrate-guide n8n workflow as `source` (e.g. "wf-server").
+ * @property {string} [source] - literal passed to the hydrate-guide n8n workflow as `source`. Defaults to
+ *   ENGINE_SOURCE ('app_engine') - only override this if you specifically want raw-json instead
+ *   of styled-html for this app's json/static templates, which is unusual for an engine-rendered app.
  * @property {string} loginPath - redirect target when no session email is present (e.g. "/login").
  * @property {string} usersTable - schema-qualified users table for the must_change_password check (e.g. "whatsfresh.users").
  * @property {string} publicShellTemplate - template name for the public-page shell (e.g. "shell-public").
