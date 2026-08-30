@@ -36,7 +36,7 @@ export async function resolveLayout(components, config) {
   );
 
   const navCssResult = await callWorkflow('server-query', {
-    query: `SELECT css FROM ${schema}.css WHERE class = '${navCssClass}'`,
+    query: `SELECT app_engine.f_css('${schema}', '${navCssClass}') as css`,
     params: {},
     source: 'server'
   });
