@@ -3,7 +3,12 @@
 // console output, structured enough to grep. If a consuming app wants its
 // own structured logging, it can wrap callWorkflow itself.
 const BASE_URL = process.env.N8N_BASE_URL || 'https://n8n.whatsfresh.app';
+const WEBHOOK_SECRET = process.env.N8N_WEBHOOK_SECRET;
 const REDACT_KEYS = new Set(['password', 'token', 'secret', 'authorization', 'apiKey']);
+
+if (!WEBHOOK_SECRET) {
+  console.warn('[n8nClient] N8N_WEBHOOK_SECRET not set - calls will go out without the shared-secret header');
+}
 
 export { BASE_URL as N8N_BASE };
 
@@ -28,7 +33,10 @@ export async function callWorkflow(webhookPath, body = {}) {
   try {
     response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(WEBHOOK_SECRET ? { 'X-Webhook-Secret': WEBHOOK_SECRET } : {})
+      },
       body: payload
     });
   } catch (err) {
