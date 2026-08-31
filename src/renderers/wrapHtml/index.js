@@ -7,6 +7,7 @@ import { reportActionsCode } from './reportActions.js';
 import { popActionsCode } from './popActions.js';
 import { workerPickerCode } from './workerPicker.js';
 import { formHydrationCode } from './formHydration.js';
+import { richTextActionsCode } from './richTextActions.js';
 
 /**
  * @typedef {import('../../config.js').AppConfig} AppConfig
@@ -37,6 +38,7 @@ export function wrapHtml(title, body, config = {}) {
     (() => {
       ${actionEngineCode}
       ${formHydrationCode}
+      ${richTextActionsCode}
       ${actionHandlersCode}
       ${gridActionsCode}
       ${selectActionsCode}
@@ -115,6 +117,8 @@ export function wrapHtml(title, body, config = {}) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${title || 'WhatsFresh'}</title>
   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
   <script>
     // Global loading indicator
     (() => {

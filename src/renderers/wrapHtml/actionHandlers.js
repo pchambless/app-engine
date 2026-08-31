@@ -65,6 +65,7 @@ export const actionHandlersCode = `
           const mode = hydrateData.mode || window.contextStore?.mode || 'INSERT';
           applyModeVisibility(container, mode);
           hydrateEmbeddedDropdowns(container);
+          initRichTextFields(container);
 
           const form = container.querySelector('form');
           if (form) form.id = 'inline_form_element';
