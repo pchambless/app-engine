@@ -46,6 +46,12 @@ export const actionHandlersCode = `
         if (resolvedAction.action === 'open_inline_form') {
           const formTemplate = resolvedAction.form_template;
           const actionValues = resolvedAction.values || {};
+          // Persist to contextStore like setVals does - a later Save/Delete
+          // reads window.contextStore for mode/pk, not this action's own
+          // values, so those values need to outlive this one call.
+          if (Object.keys(actionValues).length > 0) {
+            window.contextStore = { ...(window.contextStore || {}), ...actionValues };
+          }
           const hydrateData = { ...(window.contextStore || {}), ...elementContext, ...actionValues };
           const panel = document.getElementById('inline_form_panel');
           const container = document.getElementById('inline_form_container');
