@@ -75,6 +75,7 @@ export function wrapHtml(title, body, config = {}) {
               if (window.htmx) window.htmx.process(formContainer);
               applyModeVisibility(formContainer, 'INSERT');
               hydrateEmbeddedDropdowns(formContainer);
+              initRichTextFields(formContainer);
               const form = formContainer.querySelector('form');
               if (form) form.id = 'inline_form_element';
               const titleEl = document.getElementById('inline_form_title');
