@@ -32,9 +32,43 @@ export const gridActionsCode = `
         const searchTerm = input.value.trim().toLowerCase();
         const rows = getGridRows(wrapper);
 
+        if (searchTerm === '') {
+          for (const row of rows) row.style.display = '';
+          return;
+        }
+
+        // Hierarchy-aware: a matched row's ancestors (walked via a hidden
+        // data-parent-id attribute) stay visible too, so a search hit shows
+        // its place in the hierarchy instead of just the bare matching row -
+        // mirrors an Appsmith pattern (hidden parent_id column driving the
+        // same reveal). Rows without data-parent-id (flat, non-hierarchical
+        // grids - most of them) have no parent to walk to, so this is a
+        // no-op there: plain self-match, unchanged from before.
+        const byId = new Map();
+        for (const row of rows) {
+          const id = row.getAttribute('data-row-id');
+          if (id) byId.set(id, row);
+        }
+
+        const visible = new Set();
         for (const row of rows) {
           const rowText = row.textContent?.toLowerCase() || '';
-          row.style.display = searchTerm === '' || rowText.includes(searchTerm) ? '' : 'none';
+          if (!rowText.includes(searchTerm)) continue;
+
+          visible.add(row);
+          let parentId = row.getAttribute('data-parent-id');
+          const seen = new Set();
+          while (parentId && !seen.has(parentId)) {
+            seen.add(parentId);
+            const parentRow = byId.get(parentId);
+            if (!parentRow) break;
+            visible.add(parentRow);
+            parentId = parentRow.getAttribute('data-parent-id');
+          }
+        }
+
+        for (const row of rows) {
+          row.style.display = visible.has(row) ? '' : 'none';
         }
       };
 
