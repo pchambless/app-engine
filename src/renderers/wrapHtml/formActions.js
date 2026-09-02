@@ -183,8 +183,32 @@ export const formActionsCode = `
           const result = await response.json();
 
           if (result.success) {
-            // Refresh page after save
-            window.location.reload();
+            const panel = document.getElementById("inline_form_panel");
+            if (panel) panel.classList.add("hidden");
+
+            // Refresh just the grid instead of the whole page, and scroll
+            // back to the row just saved instead of snapping to the top -
+            // same refreshComponents mechanism dml_direct buttons already
+            // use, just wired into Save too. Falls back to a full reload
+            // if the page never declared a grid (e.g. no gridComponentId).
+            const gridId = window.__pageContext?.gridComponentId;
+            const savedId = payload.record_id;
+            const grid = gridId && document.getElementById(gridId);
+
+            if (grid && window.htmx) {
+              const onSwap = (evt) => {
+                if (evt.target !== grid) return;
+                grid.removeEventListener("htmx:afterSwap", onSwap);
+                if (savedId) {
+                  const row = grid.querySelector('[data-row-id="' + savedId + '"]');
+                  if (row) row.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+              };
+              grid.addEventListener("htmx:afterSwap", onSwap);
+              refreshComponents([gridId]);
+            } else {
+              window.location.reload();
+            }
           } else {
             const errMsg = typeof result.error === 'object' ? JSON.stringify(result.error) : (result.error || "Save failed");
             alert(errMsg);
