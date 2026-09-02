@@ -3,7 +3,7 @@ export const actionHandlersCode = `
         const { rowData, elementContext, wrapper, event, getActionValue, applySwap, refreshComponents } = ctx;
         const actionName = String(resolvedAction.action || '').toLowerCase();
 
-        // --- setVals (always runs, then falls through to server action) ---
+        // --- setVals ---
         if (actionName === 'setvals') {
           const nextValues = resolvedAction.values || resolvedAction.vals || {};
           if (nextValues && typeof nextValues === 'object' && !Array.isArray(nextValues)) {
@@ -12,7 +12,20 @@ export const actionHandlersCode = `
               ...nextValues
             };
           }
-          // Always fall through to server action to persist via /api/actions
+          // A "refresh" list (same field dml_direct already uses) means a
+          // stateless app: no server-side context_store/session to persist
+          // to, so refresh the named components directly - their own
+          // hx-vals already re-reads window.contextStore (buildHtmxDiv/
+          // buildSelectWidget's js: prefix), which is where the new values
+          // just landed. Skips the /api/actions round trip entirely, which
+          // whatsfresh needs (context_store persistence) but an app with no
+          // login/session has no route for.
+          if (Array.isArray(resolvedAction.refresh) && resolvedAction.refresh.length > 0) {
+            refreshComponents(resolvedAction.refresh);
+            return 'handled';
+          }
+          // Otherwise: always fall through to server action to persist via
+          // /api/actions (whatsfresh's existing behavior, unchanged).
         }
 
         // --- conditional_setVals ---

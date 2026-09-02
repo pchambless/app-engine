@@ -23,7 +23,10 @@ export function buildSelectWidget(component, slotAttrs = {}) {
     `data-widget="select"`,
     `hx-post="/api/hydrate"`,
     `hx-trigger="load"`,
-    `hx-vals='${JSON.stringify(hxVals)}'`,
+    // Same contextStore merge as buildHtmxDiv - a dropdown re-rendered via
+    // refresh-component should see current filter state too, not just its
+    // own template_name/slotAttrs.
+    `hx-vals='js:{...${JSON.stringify(hxVals)}, ...(window.contextStore||{})}'`,
     `hx-swap="innerHTML"`
   ];
 

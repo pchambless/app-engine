@@ -52,7 +52,12 @@ export function buildHtmxDiv(component, slotAttrs = {}) {
     // real custom event name htmx binds a genuine addEventListener for, which
     // refreshComponents (actionEngine.js) fires to force a re-fetch on demand.
     `hx-trigger="load, refresh-component"`,
-    `hx-vals='${JSON.stringify(hxVals)}'`,
+    // js: prefix makes htmx evaluate this at request time instead of once at
+    // render time, so it picks up whatever setVals has accumulated into
+    // window.contextStore since the page loaded (id, status, priority, etc.)
+    // without needing a server-side session/context_store - stateless apps
+    // (app_engine.dml's own design choice) get multi-filter combos for free.
+    `hx-vals='js:{...${JSON.stringify(hxVals)}, ...(window.contextStore||{})}'`,
     `hx-swap="innerHTML"`
   ];
 
