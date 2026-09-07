@@ -133,7 +133,29 @@ export const formActionsCode = `
 
           if (result.success) {
             formModal.close();
-            window.location.reload();
+
+            // Refresh just the grid instead of reloading the whole page, then
+            // scroll the saved row into view - same behavior as the inline form
+            // path. Falls back to a full reload if the page declared no grid.
+            const gridId = window.__pageContext?.gridComponentId;
+            const contextKey = window.__pageContext?.contextKey || "id";
+            const savedId = window.contextStore?.[contextKey];
+            const grid = gridId && document.getElementById(gridId);
+
+            if (grid && window.htmx) {
+              const onSwap = (evt) => {
+                if (evt.target !== grid) return;
+                grid.removeEventListener("htmx:afterSwap", onSwap);
+                if (savedId) {
+                  const row = grid.querySelector('[data-row-id="' + savedId + '"]');
+                  if (row) row.scrollIntoView({ behavior: "smooth", block: "center" });
+                }
+              };
+              grid.addEventListener("htmx:afterSwap", onSwap);
+              refreshComponents([gridId]);
+            } else {
+              window.location.reload();
+            }
           } else {
             const errMsg = typeof result.error === 'object' ? JSON.stringify(result.error) : (result.error || "Save failed");
             alert(errMsg);
@@ -192,7 +214,8 @@ export const formActionsCode = `
             // use, just wired into Save too. Falls back to a full reload
             // if the page never declared a grid (e.g. no gridComponentId).
             const gridId = window.__pageContext?.gridComponentId;
-            const savedId = payload.record_id;
+            const contextKey = window.__pageContext?.contextKey || "id";
+            const savedId = window.contextStore?.[contextKey];
             const grid = gridId && document.getElementById(gridId);
 
             if (grid && window.htmx) {
