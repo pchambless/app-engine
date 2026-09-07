@@ -183,6 +183,12 @@ export const actionHandlersCode = `
           const pkVal = resolvedAction.pk_val || window.contextStore?.[pkField] || null;
           const refresh = resolvedAction.refresh || [];
           const confirmMsg = resolvedAction.confirm;
+          // fields_from_context: {payload_key: contextStore_key} - lets a page-level
+          // button (no rowData of its own, e.g. a context-btn strip) pull a value a
+          // prior row_click stashed via setVals, same source pk_val already reads for
+          // pk_field. Applied after the static fields so a caller can override per-call
+          // if it ever needs to.
+          const fieldsFromContext = resolvedAction.fields_from_context || {};
 
           if (confirmMsg && !confirm(confirmMsg)) {
             return 'handled';
@@ -193,6 +199,9 @@ export const actionHandlersCode = `
           if (pkVal) payload.map_id = pkVal;
           for (const [key, value] of Object.entries(fields)) {
             payload[key] = value;
+          }
+          for (const [payloadKey, contextKey] of Object.entries(fieldsFromContext)) {
+            payload[payloadKey] = window.contextStore?.[contextKey];
           }
 
           try {
