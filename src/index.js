@@ -9,3 +9,4 @@ export { normalizeHtml } from './renderers/normalizeHtml.js';
 export { escapeHtmlAttr } from './renderers/htmlUtils.js';
 export { wrapHtml } from './renderers/wrapHtml/index.js';
 export { callWorkflow, N8N_BASE } from './utils/n8nClient.js';
+export { loadAppConfig, clearAppConfigCache } from './loadAppConfig.js';

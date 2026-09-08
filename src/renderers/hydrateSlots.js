@@ -59,7 +59,7 @@ function parseSlotAttrs(attrString) {
   return attrs;
 }
 
-export async function hydrateSlots(pageHtml, components, slotActions, email) {
+export async function hydrateSlots(pageHtml, components, slotActions, email, schema, source) {
   const slotComponents = new Map(
     components
       .filter(c => c.slot_name && c.comp_name !== 'appbar' && c.slot_name !== 'context-btn')
@@ -97,10 +97,10 @@ export async function hydrateSlots(pageHtml, components, slotActions, email) {
 
     if (defaultTemplateName) {
       if (!defaultSlotTemplateCache.has(defaultTemplateName)) {
-        const defaultTemplateResult = await callWorkflow('hydrate-guide', {
+        const defaultTemplateResult = await callWorkflow('app-hydrate-guide', {
           template_name: defaultTemplateName,
-          source: 'wf-server',
-          format: 'html',
+          schema,
+          source,
           ...(email ? { email } : {})
         });
         defaultSlotTemplateCache.set(defaultTemplateName, normalizeHtml(defaultTemplateResult));

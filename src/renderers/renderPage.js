@@ -34,7 +34,11 @@ export function createRenderPage(config) {
     publicShellTemplate,
     changePasswordPageName,
     changePasswordTemplate,
-    appbarTemplate
+    appbarTemplate,
+    // Apps with no authentication (e.g. Support - a single trusted user behind
+    // network-level trust, JSON-allowlist is authorization not authentication).
+    // Skips the login redirect and must-change-password gate entirely.
+    noAuth = false
   } = config;
 
   let cachedRoutes = [];
@@ -53,12 +57,12 @@ export function createRenderPage(config) {
     if (!routeInfo) return next();
 
     if (routeInfo.group_name === 'public') {
-      const shell = await callWorkflow('hydrate-guide', {
-        template_name: publicShellTemplate, source, format: 'html'
+      const shell = await callWorkflow('app-hydrate-guide', {
+        template_name: publicShellTemplate, schema, source
       });
       const formTemplate = routeInfo.page_name + '_form';
-      const form = await callWorkflow('hydrate-guide', {
-        template_name: formTemplate, source, format: 'html'
+      const form = await callWorkflow('app-hydrate-guide', {
+        template_name: formTemplate, schema, source
       });
 
       const titleResult = await callWorkflow('server-query', {
@@ -76,30 +80,32 @@ export function createRenderPage(config) {
       return res.send(wrapHtml(routeInfo.page_name, combined, config));
     }
 
-    if (!email) return res.redirect(loginPath);
+    if (!noAuth) {
+      if (!email) return res.redirect(loginPath);
 
-    if (route !== '/change-password') {
-      try {
-        const flagResult = await callWorkflow('server-query', {
-          query: `SELECT must_change_password FROM ${usersTable} WHERE email = '${email.replace(/'/g, "''")}'`,
-          params: {},
-          source: 'server'
-        });
-        const flagRow = Array.isArray(flagResult) ? flagResult[0] : flagResult;
-        if (flagRow?.must_change_password) {
-          return res.redirect('/change-password');
+      if (route !== '/change-password') {
+        try {
+          const flagResult = await callWorkflow('server-query', {
+            query: `SELECT must_change_password FROM ${usersTable} WHERE email = '${email.replace(/'/g, "''")}'`,
+            params: {},
+            source: 'server'
+          });
+          const flagRow = Array.isArray(flagResult) ? flagResult[0] : flagResult;
+          if (flagRow?.must_change_password) {
+            return res.redirect('/change-password');
+          }
+        } catch (e) {
+          // Non-fatal: if the check itself fails, don't block the whole app on it.
         }
-      } catch (e) {
-        // Non-fatal: if the check itself fails, don't block the whole app on it.
       }
     }
 
     if (routeInfo.page_name === changePasswordPageName) {
-      const shell = await callWorkflow('hydrate-guide', {
-        template_name: publicShellTemplate, source, format: 'html'
+      const shell = await callWorkflow('app-hydrate-guide', {
+        template_name: publicShellTemplate, schema, source
       });
-      const form = await callWorkflow('hydrate-guide', {
-        template_name: changePasswordTemplate, source, format: 'html'
+      const form = await callWorkflow('app-hydrate-guide', {
+        template_name: changePasswordTemplate, schema, source
       });
       const shellHtml = normalizeHtml(shell);
       const formHtml = normalizeHtml(form);
@@ -109,18 +115,15 @@ export function createRenderPage(config) {
       return res.send(wrapHtml(routeInfo.page_name, combined, config));
     }
 
-    try {
-      await callWorkflow('setvals', {
-        email,
-        vals: [{ param_name: 'page_id', param_val: String(routeInfo.page_id) }]
-      });
-    } catch (e) {
-      return res.status(500).send('Failed to set page context');
-    }
-
+    // app-engine-native page structure: schema + page_id passed directly, so no
+    // server-side context_store round-trip (the old setvals->page-structure->c_getval
+    // dance was a whatsfresh dependency this replaces). See app_engine.api_page_structure.
     let pageInfo, components, slotActions;
     try {
-      const structure = await callWorkflow('page-structure', { email });
+      const structure = await callWorkflow('app-page-structure', {
+        schema,
+        page_id: routeInfo.page_id
+      });
       pageInfo = structure?.pageInfo;
       components = structure?.components || [];
       slotActions = structure?.slotActions || structure?.pageInfo?.slotActions || {};
@@ -151,8 +154,8 @@ export function createRenderPage(config) {
       return res.status(500).send('Failed to fetch page structure');
     }
 
-    const templateResult = await callWorkflow('hydrate-guide', {
-      template_name: pageInfo.templateName, source, email
+    const templateResult = await callWorkflow('app-hydrate-guide', {
+      template_name: pageInfo.templateName, schema, source, email
     });
     let pageHtml = normalizeHtml(templateResult);
 
@@ -164,7 +167,7 @@ export function createRenderPage(config) {
       pageHtml = pageHtml.split('{{slot:page-buttons}}').join('');
     }
 
-    pageHtml = await hydrateSlots(pageHtml, components, slotActions, email);
+    pageHtml = await hydrateSlots(pageHtml, components, slotActions, email, schema, source);
 
     let layoutHtml = await resolveLayout(components, config);
     layoutHtml = layoutHtml.replace('{{slot:page}}', pageHtml);

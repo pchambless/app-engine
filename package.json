@@ -5,5 +5,11 @@
   "description": "Shared render/action engine (server + client) for htmx-driven CRUD apps - extracted from wf-server. Consumed as a git dependency, not published to a registry.",
   "type": "module",
   "main": "src/index.js",
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "dependencies": {
+    "express": "^5.2.1"
+  },
+  "scripts": {
+    "start": "node server.js"
+  }
 }
