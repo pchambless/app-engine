@@ -3,6 +3,22 @@ export const actionHandlersCode = `
         const { rowData, elementContext, wrapper, event, getActionValue, applySwap, refreshComponents } = ctx;
         const actionName = String(resolvedAction.action || '').toLowerCase();
 
+        // --- redirect (client-side) ---
+        // Navigation buttons (context-btn slot, action_type redirect). The url may carry {{key}} placeholders
+        // filled from the current context (contextStore, then the row/element), e.g.
+        // /release-detail?selected_run_id={{selected_run_id}}. Parameters whose value is empty are dropped, so
+        // an unset key never pins the next page to ''. No server round trip: stateless apps have no /api/actions.
+        if (actionName === 'redirect') {
+          const rawUrl = (resolvedAction.payload && resolvedAction.payload.url) || resolvedAction.url || resolvedAction.redirectUrl;
+          if (!rawUrl) return 'handled';
+          const vals = { ...(window.contextStore || {}), ...(elementContext || {}), ...(rowData || {}) };
+          const filled = String(rawUrl).replace(/[{][{][ ]*([A-Za-z0-9_.-]+)[ ]*[}][}]/g, (m, key) => (vals[key] === undefined || vals[key] === null) ? '' : encodeURIComponent(String(vals[key])));
+          const target = new URL(filled, window.location.origin);
+          Array.from(target.searchParams.keys()).forEach((k) => { if (target.searchParams.get(k) === '') target.searchParams.delete(k); });
+          window.location.href = target.pathname + target.search + target.hash;
+          return 'handled';
+        }
+
         // --- setVals ---
         if (actionName === 'setvals') {
           const nextValues = resolvedAction.values || resolvedAction.vals || {};

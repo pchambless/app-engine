@@ -36,6 +36,9 @@ export function wrapHtml(title, body, config = {}) {
 
   const inlineScript = `
     (() => {
+      // Stateless apps carry page-to-page context in the URL (e.g. /release-detail?selected_run_id=406).
+      // Seed the context store from the query string BEFORE any component hydrates; values already set win.
+      window.contextStore = { ...Object.fromEntries(new URLSearchParams(window.location.search)), ...(window.contextStore || {}) };
       ${actionEngineCode}
       ${formHydrationCode}
       ${richTextActionsCode}
