@@ -15,11 +15,15 @@ await t('hydrate: calls app-hydrate-guide with the template and the context', as
   const r = res(); await api.hydrate({ body: { template_name: 'clients_grid', client_id: '2' } }, r);
   assert.equal(r.code, 200); assert.equal(r.body, '<p>ok</p>'); assert.equal(r.headers.type, 'html');
   assert.equal(calls[0].url, 'https://n8n.test/webhook/app-hydrate-guide');
-  assert.deepEqual(calls[0].body, { client_id: '2', schema: 'consulting', source: 'app_engine', template_name: 'clients_grid' });
+  assert.deepEqual(calls[0].body, { client_id: '2', schema: 'consulting', source: 'app_engine', template_name: 'clients_grid', user: 'tester' });
 });
 await t('hydrate: a client CANNOT override schema or source', async () => {
   const r = res(); await api.hydrate({ body: { template_name: 'x', schema: 'agile', source: 'wf-server' } }, r);
   assert.equal(calls[0].body.schema, 'consulting'); assert.equal(calls[0].body.source, 'app_engine');
+});
+await t('hydrate: a client CANNOT set the user either; it comes from getUser', async () => {
+  const r = res(); await api.hydrate({ user: 'paul', body: { template_name: 'x', user: 'attacker@example.com' } }, r);
+  assert.equal(calls[0].body.user, 'paul');
 });
 await t('hydrate: rejects a missing or malformed template name before any request', async () => {
   for (const body of [{}, { template_name: '../x' }, { template_name: 'a b' }, { template_name: "x';drop" }]) { const r = res(); await api.hydrate({ body }, r); assert.equal(r.code, 400); }

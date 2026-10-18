@@ -73,7 +73,7 @@ app.get('{*path}', renderPage);                                   // Express 5 s
 ```
 
 - `createApiRoutes` returns plain `(req, res)` handlers (`hydrate`, `dml`, `report`) plus `mount(app)`, so it works with any Express version.
-- Engine-owned keys (`schema`, `source`) are applied after the browser's context, so a client cannot redirect a request to another schema.
+- Engine-owned keys (`schema`, `source`, and `user` on hydrate, so a template can use `:user`) are applied after the browser's context, so a client cannot redirect a request to another schema.
   Template names, modes, page and record ids are validated before anything reaches n8n; upstream errors come back as generic messages.
 - `getUser(req)` stamps `created_by` / `updated_by`; the default reads Cloudflare Access's `cf-access-authenticated-user-email` header, else `system`.
 - Tests: `node test/apiRoutes.test.mjs` (no network; fetch is stubbed).

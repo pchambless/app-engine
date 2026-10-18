@@ -4,7 +4,7 @@
 // createApiRoutes(config, options) returns PLAIN (req, res) handlers plus mount(app), so it does not care which Express version the app runs
 // (support-app is on Express 4, the library on 5). The app still owns body parsing: app.use(express.json()) before mounting.
 //
-// Safety, learned from the copies: the browser sends its whole context store with every request, so engine-owned keys (schema, source) are
+// Safety, learned from the copies: the browser sends its whole context store with every request, so engine-owned keys (schema, source, user) are
 // written AFTER the client's values and can never be overridden; template names and modes are validated before anything reaches n8n.
 //
 //   const api = createApiRoutes(config, { getUser: req => 'paul' });   // getUser is optional
@@ -31,7 +31,8 @@ export function createApiRoutes(config, options = {}) {
     if (!template_name) return fail(res, 400, 'template_name required');
     if (!NAME.test(template_name)) return fail(res, 400, 'invalid template_name');
     try {
-      const result = await callWorkflow('app-hydrate-guide', { ...context, ...engine, template_name });
+      // user lets a template show who is signed in (:user); like schema/source it is engine-owned, the client cannot set it.
+      const result = await callWorkflow('app-hydrate-guide', { ...context, ...engine, template_name, user: getUser(req) });
       res.type('html').send(htmlOf(result));
     } catch (err) {
       console.error('[api/hydrate]', template_name, err.message);
