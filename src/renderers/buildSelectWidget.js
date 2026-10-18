@@ -22,7 +22,8 @@ export function buildSelectWidget(component, slotAttrs = {}) {
     `data-template-name="${escapeHtmlAttr(template_name)}"`,
     `data-widget="select"`,
     `hx-post="/api/hydrate"`,
-    `hx-trigger="load"`,
+    // 'refresh-component' lets a select_change refresh list re-fetch this dropdown too (dependent dropdowns), same as grids (task 601)
+    `hx-trigger="load, refresh-component"`,
     // Same contextStore merge as buildHtmxDiv - a dropdown re-rendered via
     // refresh-component should see current filter state too, not just its
     // own template_name/slotAttrs.
