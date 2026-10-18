@@ -54,6 +54,31 @@ environment (for example `personal-`) and every call goes to `/webhook/<prefix><
 changes nothing. Only letters, digits, `-` and `_` are accepted. The copies are generated, not hand-made: see
 wf-server `scripts/n8n/make-personal-suite.sh` (task 594).
 
+## Shared server routes (task 598)
+
+Every app needs the same three POST endpoints and the same page-route loading. They live here, once:
+
+```js
+import express from 'express';
+import { loadAppConfig, createRenderPage, loadRoutes, createApiRoutes } from 'app-engine';
+
+const config = await loadAppConfig('myapp.example.com');          // app_engine.apps row
+const { renderPage, setRoutes } = createRenderPage(config);
+setRoutes(await loadRoutes(config));                              // <schema>.vw_pages: pages are data; a new page row needs a restart
+
+const app = express();
+app.use(express.json());                                          // the app owns body parsing
+createApiRoutes(config, { getUser: (req) => 'paul' }).mount(app); // POST /api/hydrate, /api/dml, /api/report
+app.get('{*path}', renderPage);                                   // Express 5 syntax; Express 4 uses '*'
+```
+
+- `createApiRoutes` returns plain `(req, res)` handlers (`hydrate`, `dml`, `report`) plus `mount(app)`, so it works with any Express version.
+- Engine-owned keys (`schema`, `source`, and `user` on hydrate, so a template can use `:user`) are applied after the browser's context, so a client cannot redirect a request to another schema.
+  Template names, modes, page and record ids are validated before anything reaches n8n; upstream errors come back as generic messages.
+- `getUser(req)` stamps `created_by` / `updated_by`; the default reads Cloudflare Access's `cf-access-authenticated-user-email` header, else `system`.
+- Tests: `node test/apiRoutes.test.mjs` (no network; fetch is stubbed).
+- An app with its own extra routes (support-app's sign-off endpoints) keeps those in the app; only the three shared ones live here.
+
 ## What this does NOT hold (yet, or ever)
 
 - **`batchMapRoutes.js`** - was in an earlier draft of this scope. It's pure WhatsFresh
