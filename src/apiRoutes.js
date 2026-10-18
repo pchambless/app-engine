@@ -14,8 +14,9 @@ import { callWorkflow } from './utils/n8nClient.js';
 const NAME = /^[A-Za-z0-9_-]+$/;
 const MODES = new Set(['INSERT', 'UPDATE', 'DELETE']);
 
-// Behind Cloudflare Access the verified email arrives in this header; anywhere else there is no user and rows are stamped 'system'.
-const defaultGetUser = (req) => String(req.headers?.['cf-access-authenticated-user-email'] || '') || 'system';
+// Who is acting: only a VERIFIED identity counts. req.accessUser is set by createAccessGuard (the signed Cloudflare Access token); a raw
+// Cf-Access-Authenticated-User-Email header is never trusted because anyone who reaches the origin directly can forge it. Else 'system'.
+const defaultGetUser = (req) => req.accessUser || 'system';
 
 const htmlOf = (r) => Array.isArray(r) ? (r[0]?.html || '') : (r?.html || (typeof r === 'string' ? r : ''));
 

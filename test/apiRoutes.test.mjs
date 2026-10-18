@@ -57,10 +57,10 @@ await t('dml: rejects a bad mode, page id or record id before any request', asyn
   for (const body of [{ page_id: 4, mode: 'DROP' }, { page_id: 'abc', mode: 'INSERT' }, { mode: 'INSERT' }, { page_id: 4, mode: 'UPDATE', record_id: 'x' }, { page_id: -1, mode: 'INSERT' }]) { const r = res(); await api.dml({ body }, r); assert.equal(r.code, 400); }
   assert.equal(calls.length, 0);
 });
-await t('dml: the default user comes from the Cloudflare Access header, else system', async () => {
+await t('dml: the default user is the VERIFIED one (req.accessUser); a raw Cf-Access email header is ignored; else system', async () => {
   const plain = createApiRoutes(config);
-  await plain.dml({ headers: { 'cf-access-authenticated-user-email': 'p@example.com' }, body: { page_id: 4, mode: 'INSERT', x: 1 } }, res());
-  await plain.dml({ headers: {}, body: { page_id: 4, mode: 'INSERT', x: 1 } }, res());
+  await plain.dml({ accessUser: 'p@example.com', headers: {}, body: { page_id: 4, mode: 'INSERT', x: 1 } }, res());
+  await plain.dml({ headers: { 'cf-access-authenticated-user-email': 'forged@example.com' }, body: { page_id: 4, mode: 'INSERT', x: 1 } }, res());
   assert.equal(calls[0].body.user, 'p@example.com'); assert.equal(calls[1].body.user, 'system');
 });
 await t('report: hydrates every template and joins the HTML in order', async () => {
