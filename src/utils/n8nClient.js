@@ -10,6 +10,18 @@ if (!WEBHOOK_SECRET) {
   console.warn('[n8nClient] N8N_WEBHOOK_SECRET not set - calls will go out without the shared-secret header');
 }
 
+// Optional webhook-name prefix (task 593). An app whose data lives in a different database than the default n8n
+// suite points at its own generated copy of the workflows: with N8N_WORKFLOW_PREFIX=personal-, callWorkflow('server-query')
+// hits /webhook/personal-server-query. Unset (the default) changes nothing for existing apps. It is read per call so
+// it never depends on import order, and it is validated because it becomes part of a URL path.
+function workflowPrefix() {
+  const prefix = process.env.N8N_WORKFLOW_PREFIX || '';
+  if (prefix && !/^[A-Za-z0-9_-]+$/.test(prefix)) {
+    throw new Error(`N8N_WORKFLOW_PREFIX may only contain letters, digits, '-' and '_' (got ${JSON.stringify(prefix)})`);
+  }
+  return prefix;
+}
+
 export { BASE_URL as N8N_BASE };
 
 function redactValue(value, key = '') {
@@ -24,7 +36,7 @@ function redactValue(value, key = '') {
 }
 
 export async function callWorkflow(webhookPath, body = {}) {
-  const url = `${BASE_URL}/webhook/${webhookPath}`;
+  const url = `${BASE_URL}/webhook/${workflowPrefix()}${webhookPath}`;
   const payload = JSON.stringify(body);
   const startedAt = Date.now();
   const safeBody = redactValue(body);

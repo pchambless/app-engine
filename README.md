@@ -45,6 +45,15 @@ Same webhook-calling logic as wf-server's copy, minus the winston/file-rotation 
 dependency (a library shouldn't force log config onto every consumer) - plain `console`
 output instead.
 
+## Pointing an app at a different workflow suite
+
+`callWorkflow()` calls n8n webhooks by fixed name (`server-query`, `app-hydrate-guide`, `app-page-structure`,
+`app-engine-actions`). An n8n Postgres node holds one fixed credential, so an app whose data lives in a
+different database needs its own copy of those workflows. Set `N8N_WORKFLOW_PREFIX` in that app's process
+environment (for example `personal-`) and every call goes to `/webhook/<prefix><name>` instead. Unset or empty
+changes nothing. Only letters, digits, `-` and `_` are accepted. The copies are generated, not hand-made: see
+wf-server `scripts/n8n/make-personal-suite.sh` (task 594).
+
 ## What this does NOT hold (yet, or ever)
 
 - **`batchMapRoutes.js`** - was in an earlier draft of this scope. It's pure WhatsFresh
