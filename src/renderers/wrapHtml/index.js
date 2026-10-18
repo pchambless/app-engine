@@ -94,6 +94,8 @@ export function wrapHtml(title, body, config = {}) {
         // Delete now lives as a static button inside the form panel's own
         // action bar (left of Save) instead of the top toolbar - it only
         // ever acts on the single record currently loaded in the form.
+        // record_id is the key the app-server /api/dml contract reads (task 597); f_id is the older whatsfresh key, kept
+        // so servers that still read it keep working.
         const delBtn = document.getElementById('inline_form_delete');
         if (delBtn && ctx) {
           delBtn.addEventListener('click', async () => {
@@ -103,7 +105,7 @@ export function wrapHtml(title, body, config = {}) {
             const response = await fetch('/api/dml', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ page_id: ctx.pageId, mode: 'DELETE', f_id: pkVal })
+              body: JSON.stringify({ page_id: ctx.pageId, mode: 'DELETE', record_id: pkVal, f_id: pkVal })
             });
             const result = await response.json();
             if (result.success) window.location.reload();
