@@ -12,3 +12,4 @@ export { callWorkflow, N8N_BASE } from './utils/n8nClient.js';
 export { loadAppConfig, clearAppConfigCache } from './loadAppConfig.js';
 export { createApiRoutes } from './apiRoutes.js';
 export { loadRoutes } from './loadRoutes.js';
+export { createAccessGuard, accessUser } from './accessGuard.js';

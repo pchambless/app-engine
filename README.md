@@ -75,9 +75,26 @@ app.get('{*path}', renderPage);                                   // Express 5 s
 - `createApiRoutes` returns plain `(req, res)` handlers (`hydrate`, `dml`, `report`) plus `mount(app)`, so it works with any Express version.
 - Engine-owned keys (`schema`, `source`, and `user` on hydrate, so a template can use `:user`) are applied after the browser's context, so a client cannot redirect a request to another schema.
   Template names, modes, page and record ids are validated before anything reaches n8n; upstream errors come back as generic messages.
-- `getUser(req)` stamps `created_by` / `updated_by`; the default reads Cloudflare Access's `cf-access-authenticated-user-email` header, else `system`.
+- `getUser(req)` stamps `created_by` / `updated_by`; the default is the verified `req.accessUser` set by `createAccessGuard`, else `system`. A raw
+  Cloudflare email header is never trusted (it can be forged by anyone who reaches the origin directly).
 - Tests: `node test/apiRoutes.test.mjs` (no network; fetch is stubbed).
 - An app with its own extra routes (support-app's sign-off endpoints) keeps those in the app; only the three shared ones live here.
+
+## Cloudflare Access guard (task 603)
+
+Cloudflare Access only protects traffic that goes through Cloudflare; the origin's own address answers too. `createAccessGuard` verifies the signed
+`Cf-Access-Jwt-Assertion` token on every request (RS256 signature against the team's keys, expiry, issuer, audience, email) and sets `req.accessUser`.
+
+```js
+import { createAccessGuard, accessUser, createApiRoutes } from 'app-engine';
+const guard = createAccessGuard({ teamDomain: process.env.ACCESS_TEAM_DOMAIN, audience: process.env.ACCESS_AUD });
+app.get('/health', (req, res) => res.send('ok'));   // anything that must stay open goes BEFORE the guard
+app.use(guard);                                     // everything after needs a valid Access token
+createApiRoutes(config, { getUser: accessUser }).mount(app);
+```
+
+`ACCESS_TEAM_DOMAIN` is the team's `<name>.cloudflareaccess.com`; `ACCESS_AUD` is the Application Audience tag on the Access application. An app should
+refuse to start without both unless a deliberate development flag is set (see consulting-app). Tests: `node test/accessGuard.test.mjs`.
 
 ## What this does NOT hold (yet, or ever)
 
