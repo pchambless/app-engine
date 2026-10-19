@@ -24,7 +24,10 @@ export const richTextActionsCode = `
               ]
             }
           });
-          quill.root.innerHTML = textarea.value || '';
+          // Load through Quill's own HTML import, not root.innerHTML: legacy text from other editors (nested lists inside
+          // list items, bare list items, entities) is read as indented bullets instead of being discarded, which left the
+          // field blank and let the next edit overwrite the stored text. 'silent' = loading is not an edit.
+          quill.setContents(quill.clipboard.convert(textarea.value || ''), 'silent');
           quill.on('text-change', () => {
             textarea.value = quill.root.innerHTML;
           });
