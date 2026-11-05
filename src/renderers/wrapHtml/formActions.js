@@ -96,7 +96,11 @@ export const formActionsCode = `
           if (container) {
             container.innerHTML = "";
           }
-          if (window.contextStore) delete window.contextStore.form_page_id;
+          if (window.contextStore) {
+            for (const k of window.__modalValueKeys || []) delete window.contextStore[k];
+            delete window.contextStore.form_page_id;
+          }
+          window.__modalValueKeys = [];
         }
       };
 

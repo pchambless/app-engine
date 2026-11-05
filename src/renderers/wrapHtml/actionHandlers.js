@@ -67,8 +67,11 @@ export const actionHandlersCode = `
           // Persist to contextStore like open_inline_form does - the modal's Save
           // reads mode/pk/form_page_id from there. Avoids a setVals step, which in
           // a stateless app falls through to /api/actions and stops the sequence.
+          // formModal.close removes these keys again: a leftover id would leak into
+          // later dml_direct buttons, which read contextStore.id as their pk.
           if (Object.keys(actionValues).length > 0) {
             window.contextStore = { ...(window.contextStore || {}), ...actionValues };
+            window.__modalValueKeys = Object.keys(actionValues);
           }
           const hydrateData = { ...(window.contextStore || {}), ...elementContext, ...actionValues };
           if (window.formModal && formTemplate) {
