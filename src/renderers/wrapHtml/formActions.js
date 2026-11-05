@@ -181,7 +181,10 @@ export const formActionsCode = `
         e.preventDefault();
 
         const mode = window.contextStore?.mode || "INSERT";
-        const pageId = window.__pageContext?.pageId || window.contextStore?.page_id;
+        // form_page_id: set by an open_inline_form action whose form belongs to a
+        // different page than the one it is opened from (e.g. the release plan page
+        // opening agile_form). Absent, the form saves to its own page as before.
+        const pageId = window.contextStore?.form_page_id || window.__pageContext?.pageId || window.contextStore?.page_id;
 
         if (!pageId) {
           alert("Error: page context not available");
@@ -207,6 +210,7 @@ export const formActionsCode = `
           if (result.success) {
             const panel = document.getElementById("inline_form_panel");
             if (panel) panel.classList.add("hidden");
+            if (window.contextStore) delete window.contextStore.form_page_id;
 
             // Refresh just the grid instead of the whole page, and scroll
             // back to the row just saved instead of snapping to the top -
@@ -246,6 +250,7 @@ export const formActionsCode = `
         if (e.target instanceof Element && e.target.closest(".inline-form-close")) {
           const panel = document.getElementById("inline_form_panel");
           if (panel) panel.classList.add("hidden");
+          if (window.contextStore) delete window.contextStore.form_page_id;
         }
       });
 `;
