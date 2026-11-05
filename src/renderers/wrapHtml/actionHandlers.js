@@ -64,6 +64,12 @@ export const actionHandlersCode = `
         if (resolvedAction.action === 'open_modal') {
           const formTemplate = resolvedAction.form_template;
           const actionValues = resolvedAction.values || {};
+          // Persist to contextStore like open_inline_form does - the modal's Save
+          // reads mode/pk/form_page_id from there. Avoids a setVals step, which in
+          // a stateless app falls through to /api/actions and stops the sequence.
+          if (Object.keys(actionValues).length > 0) {
+            window.contextStore = { ...(window.contextStore || {}), ...actionValues };
+          }
           const hydrateData = { ...(window.contextStore || {}), ...elementContext, ...actionValues };
           if (window.formModal && formTemplate) {
             window.formModal.open(formTemplate, hydrateData);
