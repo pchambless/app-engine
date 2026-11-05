@@ -49,6 +49,7 @@ export const formActionsCode = `
           const mode = hydrateData?.mode || window.contextStore?.mode || "INSERT";
           applyModeVisibility(container, mode);
           hydrateEmbeddedDropdowns(container);
+          if (typeof initRichTextFields === "function") initRichTextFields(container);
 
           const form = container.querySelector("form");
           if (form) {
@@ -95,6 +96,7 @@ export const formActionsCode = `
           if (container) {
             container.innerHTML = "";
           }
+          if (window.contextStore) delete window.contextStore.form_page_id;
         }
       };
 
@@ -107,7 +109,8 @@ export const formActionsCode = `
         e.preventDefault();
 
         const mode = window.contextStore?.mode || "INSERT";
-        const pageId = window.__pageContext?.pageId || window.contextStore?.page_id;
+        // form_page_id: see the inline handler below - a form opened from another page.
+        const pageId = window.contextStore?.form_page_id || window.__pageContext?.pageId || window.contextStore?.page_id;
 
         if (!pageId) {
           alert("Error: page context not available");
