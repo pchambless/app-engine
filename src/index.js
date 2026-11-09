@@ -1,6 +1,6 @@
 export { createRenderPage } from './renderers/renderPage.js';
 export { ENGINE_SOURCE } from './config.js';
-export { resolveLayout } from './renderers/resolveLayout.js';
+export { resolveLayout, clearLayoutCache } from './renderers/resolveLayout.js';
 export { hydrateSlots } from './renderers/hydrateSlots.js';
 export { buildCrudButtons } from './renderers/buildCrudButtons.js';
 export { buildHtmxDiv } from './renderers/buildHtmxDiv.js';
