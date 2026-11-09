@@ -84,6 +84,61 @@ await t('mount: registers the three routes on whatever app it is given', async (
 await t('a config without a schema is refused at construction', async () => {
   assert.throws(() => createApiRoutes({}), /schema/);
 });
+
+// ---- renderer: 'handlebars' (task 853) ----
+// server-query stub: answers by which query arrives (hydrate SQL lookup, f_html_styled, then the template's own hydrate SQL).
+const hb = createApiRoutes(config, { renderer: 'handlebars', getUser: () => 'tester' });
+const json = (v) => new Response(JSON.stringify(v), { status: 200, headers: { 'content-type': 'application/json' } });
+const serve = ({ hydrate = 'select * from t where id = :id::int', html, rows }) => (b) =>
+  /SELECT hydrate FROM/.test(b.query) ? json([{ hydrate }]) : /f_html_styled/.test(b.query) ? json([{ html }]) : json(rows);
+const stub = (fn) => { reply = null; globalThis.fetch = async (url, init) => { const body = JSON.parse(init.body); calls.push({ url, body }); return fn(body); }; };
+const FORM = '{{#each data}}<b>{{name}}</b>{{#if is_task}}<select>{{#if is_todo}}<i>todo</i>{{else}}<i>other</i>{{/if}}</select>{{/if}}{{#unless priority}}-{{/unless}}{{/each}}';
+
+await t('handlebars: nested #if / else / #unless render (what the n8n renderer mangles)', async () => {
+  stub(serve({ html: FORM, rows: [{ name: 'T1', is_task: true, is_todo: false, priority: null }] }));
+  const r = res(); await hb.hydrate({ body: { template_name: 'agile_form', id: '7' } }, r);
+  assert.equal(r.code, 200); assert.equal(r.headers.type, 'html'); assert.equal(r.body, '<b>T1</b><select><i>other</i></select>-');
+  assert.ok(calls.every((c) => c.url === 'https://n8n.test/webhook/server-query'));
+  assert.match(calls[0].body.query, /FROM consulting\.html_templates/); assert.match(calls[1].body.query, /f_html_styled\('consulting'/);
+  assert.equal(calls[2].body.params.id, '7'); assert.equal(calls[2].body.params.user, 'tester');
+});
+await t('handlebars: values are HTML-escaped; a lone empty row means no rows', async () => {
+  stub(serve({ html: '{{#each data}}<tr>{{name}}</tr>{{/each}}', rows: [{ name: '<x>' }] }));
+  let r = res(); await hb.hydrate({ body: { template_name: 'g' } }, r); assert.equal(r.body, '<tr>&lt;x&gt;</tr>');
+  stub(serve({ html: '{{#each data}}<tr>{{name}}</tr>{{/each}}', rows: [{}] }));
+  r = res(); await hb.hydrate({ body: { template_name: 'g' } }, r); assert.equal(r.body, '');
+});
+await t('handlebars: INSERT drops the stale id and falls back to one blank row', async () => {
+  stub(serve({ html: '{{#each data}}<input value="{{name}}">{{/each}}', rows: [{}] }));
+  const r = res(); await hb.hydrate({ body: { template_name: 'f', mode: 'INSERT', id: '10003' } }, r);
+  assert.equal(calls[2].body.params.id, null); assert.equal(r.body, '<input value="">');
+});
+await t('handlebars: an unbound :param becomes NULL (casts skipped); first-row fields sit at the top level', async () => {
+  stub(serve({ hydrate: "select :page_title::text as title, :status as s", html: '<h1>{{title}}</h1>', rows: [{ title: 'Board' }] }));
+  const r = res(); await hb.hydrate({ body: { template_name: 'appbar', page_title: 'Board' } }, r);
+  assert.equal(r.body, '<h1>Board</h1>');
+  assert.equal(calls[2].body.params.status, null); assert.equal('text' in calls[2].body.params, false);
+});
+await t('handlebars: the client cannot set schema, source or user', async () => {
+  stub(serve({ html: '<p>x</p>', rows: [{}] }));
+  await hb.hydrate({ body: { template_name: 'f', schema: 'agile', source: 'x', user: 'attacker' } }, res());
+  assert.match(calls[0].body.query, /consulting\.html_templates/);
+  assert.equal('schema' in calls[2].body.params, false); assert.equal('source' in calls[2].body.params, false); assert.equal(calls[2].body.params.user, 'tester');
+});
+await t('handlebars: a template with no hydrate SQL renders once; an unknown template says so', async () => {
+  stub(serve({ hydrate: null, html: '<p>static {{name}}</p>' }));
+  let r = res(); await hb.hydrate({ body: { template_name: 's' } }, r); assert.equal(r.body, '<p>static </p>'); assert.equal(calls.length, 2);
+  stub(serve({ html: null }));
+  r = res(); await hb.hydrate({ body: { template_name: 'nope' } }, r); assert.match(r.body, /No template named nope/);
+});
+await t('handlebars: an upstream failure is a generic 500; a bad renderer or schema is refused at construction', async () => {
+  stub(() => new Response('boom', { status: 500 }));
+  const r = res(); await hb.hydrate({ body: { template_name: 'x' } }, r); assert.equal(r.code, 500); assert.equal(r.body, 'Hydrate failed');
+  assert.throws(() => createApiRoutes(config, { renderer: 'mustache' }), /renderer/);
+  assert.throws(() => createApiRoutes({ schema: 'a; drop' }, { renderer: 'handlebars' }), /plain schema/);
+  assert.doesNotThrow(() => createApiRoutes({ schema: 'a; drop' }));
+});
+globalThis.fetch = async (url, init) => { calls.push({ url, body: JSON.parse(init.body) }); return reply(); };
 console.log(`\n${passed} passed`);
 
 // ---- loadRoutes (task 598) ----
